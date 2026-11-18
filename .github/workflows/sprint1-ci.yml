@@ -21,7 +21,7 @@ jobs:
         run: python -m pytest -q
       - name: Deployment entrypoint check
         run: |
-          test -f balance_app.py
-          test -f requirements.txt
-          test -f .streamlit/config.toml
-          python -c "import balance_app" 2>/dev/null || echo "Streamlit entrypoint requires runtime context; compile check passed"
+          test -s balance_app.py
+          test -s requirements.txt
+          test -s .streamlit/config.toml
+          python -c "import streamlit, shap, xgboost; print('Runtime imports OK')"
