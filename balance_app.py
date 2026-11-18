@@ -5,12 +5,15 @@ import pandas as pd
 import streamlit as st
 from features import LEVELS,DISCIPLINES,encode,balance_score
 from train import train
+from survey_schema import encode_survey, SurveyValidationError, SCHEMA_VERSION
+from ml.explainability import top_contributions, plot_contributions
 st.set_page_config(page_title="AI Balance Buddy",page_icon="⚖️",layout="wide")
 st.markdown("<style>.block-container{max-width:1200px;padding-top:2rem}[data-testid=stMetric]{background:#172038;padding:16px;border-radius:12px}</style>",unsafe_allow_html=True)
 @st.cache_resource(show_spinner="Preparing synthetic research model...")
 def model_and_report():
     return train(save=False)
-st.title("⚖️ AI Balance Buddy")
+st.title("⚖️ AI Balance Buddy 2.0")
+st.caption("Sprint 1 research preview · schema "+SCHEMA_VERSION)
 st.caption("Explainable machine learning for balanced Gen-AI use among university students")
 st.info("Research demonstration using 400 **synthetic** student profiles. Scores are illustrative and not validated diagnoses. Survey responses are not stored.")
 with st.sidebar:
@@ -35,7 +38,11 @@ with st.sidebar:
     atrophy=st.slider("Perceived skill decline",1,5,3)
     night=st.slider("Late-night AI reliance",1,5,3)
 record={'Age':age,'Academic_Level':level,'Discipline':discipline,'Weekly_GenAI_Hours':hours,'Task_Brainstorming':int(brainstorm),'Task_Drafting':int(drafting),'Task_Coding':int(coding),'Quota_Enforced':int(quota),'Cognitive_Isolation_Mode':int(isolation),'Prompt_Complexity':prompt,'Fact_Check_Freq':fact,'Content_Mod_Rate':mod,'Blank_Page_Paralysis':blank,'System_Outage_Anxiety':outage,'Skill_Atrophy_Sense':atrophy,'Late_Night_Dependency':night}
-X=encode(pd.DataFrame([record]))
+try:
+    X=encode_survey(record)
+except SurveyValidationError as exc:
+    st.error("Survey validation error: "+str(exc))
+    st.stop()
 try:
     model,report=model_and_report()
 except Exception as exc:
@@ -53,23 +60,11 @@ st.subheader("Model cohort probabilities")
 st.bar_chart(pd.DataFrame({'Probability':probs},index=labels))
 st.subheader("Explainable AI · SHAP")
 try:
-    import shap
-    values=shap.TreeExplainer(model)(X).values
-    contributions=values[0,:,class_id] if values.ndim==3 else values[0]
-    top=pd.Series(contributions,index=X.columns).sort_values(key=abs,ascending=False).head(10)
-    if not np.isfinite(top.to_numpy()).all():
-        st.warning("Explanation values are unavailable for this response.")
-    else:
-        import matplotlib.pyplot as plt
-        fig,ax=plt.subplots(figsize=(8,5))
-        top=top.iloc[::-1]
-        ax.barh([name.replace("_"," ") for name in top.index],top.values,color=["#F59E0B" if v>0 else "#8B5CF6" for v in top.values])
-        ax.axvline(0,color="gray",linewidth=1)
-        ax.set_xlabel("SHAP contribution to selected cohort (model output units)")
-        ax.set_title("Top factors for this prediction")
-        fig.tight_layout()
-        st.pyplot(fig,use_container_width=True)
-        plt.close(fig)
+    top=top_contributions(model,X,class_id,limit=10)
+    fig=plot_contributions(top)
+    st.pyplot(fig,use_container_width=True)
+    import matplotlib.pyplot as plt
+    plt.close(fig)
     st.caption("Model attribution, not causal evidence.")
 except Exception as exc:
     st.warning("SHAP visualization unavailable: "+type(exc).__name__)
