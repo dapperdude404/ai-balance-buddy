@@ -45,10 +45,9 @@ probs=model.predict_proba(X)[0]
 score=balance_score(probs)
 labels=['Healthy augmentation','Moderate reliance','High dependency pattern']
 class_id=int(np.argmax(probs))
-a,b,c=st.columns(3)
-a.metric("AI Balance Score",f"{score}/100")
-b.metric("Predicted cohort",labels[class_id])
-c.metric("High-reliance probability",f"{probs[2]*100:.1f}%")
+st.metric("AI Balance Score",f"{score}/100")
+st.metric("Predicted cohort",labels[class_id])
+st.metric("High-reliance probability",f"{probs[2]*100:.1f}%")
 st.progress(int(score))
 st.subheader("Model cohort probabilities")
 st.bar_chart(pd.DataFrame({'Probability':probs},index=labels))
@@ -58,7 +57,19 @@ try:
     values=shap.TreeExplainer(model)(X).values
     contributions=values[0,:,class_id] if values.ndim==3 else values[0]
     top=pd.Series(contributions,index=X.columns).sort_values(key=abs,ascending=False).head(10)
-    st.bar_chart(top.rename("SHAP contribution"))
+    if not np.isfinite(top.to_numpy()).all():
+        st.warning("Explanation values are unavailable for this response.")
+    else:
+        import matplotlib.pyplot as plt
+        fig,ax=plt.subplots(figsize=(8,5))
+        top=top.iloc[::-1]
+        ax.barh([name.replace("_"," ") for name in top.index],top.values,color=["#F59E0B" if v>0 else "#8B5CF6" for v in top.values])
+        ax.axvline(0,color="gray",linewidth=1)
+        ax.set_xlabel("SHAP contribution to selected cohort (model output units)")
+        ax.set_title("Top factors for this prediction")
+        fig.tight_layout()
+        st.pyplot(fig,use_container_width=True)
+        plt.close(fig)
     st.caption("Model attribution, not causal evidence.")
 except Exception as exc:
     st.warning("SHAP visualization unavailable: "+type(exc).__name__)
