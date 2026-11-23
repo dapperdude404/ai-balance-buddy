@@ -14,6 +14,13 @@
 
 </div>
 
+
+> **Quick discovery:** Explainable educational AI research prototype using synthetic surveys, Streamlit, XGBoost and SHAP.
+>
+> **Start here:** [Streamlit demo](https://ai-balance-buddy-efjzcwv3ohhckmzbuaapcp.streamlit.app/) · [Model card](docs/model_card.md) · [Contribution guide](CONTRIBUTING.md) · [Report a bug](https://github.com/dapperdude404/ai-balance-buddy/issues/new?template=bug_report.yml) · [Discovery & social preview](DISCOVERY_PACK.md).
+>
+> **Scope:** The documented demonstration uses 400 synthetic profiles with pseudo-labels, not validated outcomes or diagnoses for students.
+
 ## I. ABSTRACT
 
 AI Balance Buddy is an educational research prototype for exploring patterns of generative-AI use among university students. It combines structured self-report indicators, exploratory clustering, supervised machine-learning benchmarks, and explainable AI to examine how AI-assisted workflows relate to independent task initiation, verification practices, and self-regulated learning.
